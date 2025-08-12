@@ -219,7 +219,6 @@ function PageLeads() {
   const [selected, setSelected] = useState<number[]>([]);
   const [drawerLead, setDrawerLead] = useState<Lead | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
-  const [bulkStatus, setBulkStatus] = useState<LeadStatus>('Em andamento');
   const updateStatus = (ids: number[], status: LeadStatus) => {
     if (!ids.length) return;
     setData(prev => prev.map(l => ids.includes(l.id) ? { ...l, status } : l));
