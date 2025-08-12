@@ -1,0 +1,476 @@
+import React, { useMemo, useState } from "react";
+import {
+  Search,
+  Filter,
+  Download,
+  Plus,
+  MoreVertical,
+  Mail,
+  Phone,
+  Archive,
+  User,
+  CheckCircle2,
+  X,
+} from "lucide-react";
+
+// Tipos
+ type LeadStatus = "Novo" | "Em andamento" | "Arquivado";
+ type Lead = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  status: LeadStatus;
+  source: string; // Capturador / origem
+  owner: string;
+  lastActivity: string; // ex.: "há 3d"
+};
+
+// Mock de dados
+const MOCK_LEADS: Lead[] = [
+  {
+    id: 1,
+    name: "Anael Jonas",
+    email: "anaeljonas@outlook.com",
+    phone: "(88) 99814-7102",
+    status: "Novo",
+    source: "Capturador 123",
+    owner: "Lu Vieira",
+    lastActivity: "há 1h",
+  },
+  {
+    id: 2,
+    name: "Bruna Carvalho",
+    email: "bruna@empresa.com",
+    phone: "(11) 93311-0000",
+    status: "Em andamento",
+    source: "Landing Page",
+    owner: "Diego",
+    lastActivity: "há 3d",
+  },
+  {
+    id: 3,
+    name: "Carlos Lima",
+    email: "carlos.lima@dominio.com",
+    phone: "(21) 98877-3322",
+    status: "Arquivado",
+    source: "Capturador 123",
+    owner: "Melissa",
+    lastActivity: "há 12d",
+  },
+  {
+    id: 4,
+    name: "Daniela Souza",
+    email: "danis@dominio.com",
+    phone: "(31) 98444-1122",
+    status: "Em andamento",
+    source: "Indicação",
+    owner: "Lu Vieira",
+    lastActivity: "há 2d",
+  },
+  {
+    id: 5,
+    name: "Eduardo Nunes",
+    email: "edu@exemplo.com",
+    phone: "(19) 99777-5544",
+    status: "Novo",
+    source: "Capturador 123",
+    owner: "Diego",
+    lastActivity: "há 6h",
+  },
+];
+
+// Util – chip de status
+function StatusChip({ status }: { status: LeadStatus }) {
+  const styles =
+    status === "Novo"
+      ? "bg-blue-50 text-blue-700 border-blue-200"
+      : status === "Em andamento"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : "bg-zinc-100 text-zinc-700 border-zinc-300";
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border ${styles}`}>
+      {status === "Novo" && <User className="w-3.5 h-3.5" />}
+      {status === "Em andamento" && <CheckCircle2 className="w-3.5 h-3.5" />}
+      {status === "Arquivado" && <Archive className="w-3.5 h-3.5" />}
+      {status}
+    </span>
+  );
+}
+
+// Drawer lateral (detalhes do lead)
+function LeadDrawer({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
+  return (
+    <>
+      {/* backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/30 transition-opacity ${lead ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={onClose}
+      />
+      {/* painel */}
+      <aside
+        className={`fixed right-0 top-0 h-screen w-[420px] bg-white shadow-2xl border-l border-zinc-200 transition-transform duration-300 ${
+          lead ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <div>
+            <h3 className="text-lg font-semibold">Detalhes do lead</h3>
+            {lead && <p className="text-sm text-zinc-500">#{lead.id}</p>}
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-100">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {lead ? (
+          <div className="p-5 space-y-6 overflow-y-auto h-[calc(100vh-64px)]">
+            <div className="space-y-2">
+              <h4 className="text-xl font-semibold">{lead.name}</h4>
+              <div className="flex items-center gap-2 text-sm text-zinc-600">
+                <Mail className="w-4 h-4" />
+                <a className="hover:underline" href={`mailto:${lead.email}`}>{lead.email}</a>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-600">
+                <Phone className="w-4 h-4" />
+                <a className="hover:underline" href={`tel:${lead.phone}`}>{lead.phone}</a>
+              </div>
+              <div className="pt-2"><StatusChip status={lead.status} /></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+                <p className="text-zinc-500">Origem</p>
+                <p className="font-medium">{lead.source}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+                <p className="text-zinc-500">Owner</p>
+                <p className="font-medium">{lead.owner}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 col-span-2">
+                <p className="text-zinc-500">Última atividade</p>
+                <p className="font-medium">{lead.lastActivity}</p>
+              </div>
+            </div>
+
+            <div>
+              <h5 className="font-semibold mb-2">Ações rápidas</h5>
+              <div className="flex flex-wrap gap-2">
+                <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Enviar e-mail</button>
+                <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">WhatsApp</button>
+                <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Mudar status</button>
+                <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Atribuir</button>
+              </div>
+            </div>
+
+            <div>
+              <h5 className="font-semibold mb-2">Timeline</h5>
+              <ol className="space-y-3 text-sm">
+                <li className="flex gap-3">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>
+                    Status atualizado para <b>{lead.status}</b> — {lead.lastActivity}
+                  </span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-zinc-400" />
+                  <span>Lead criado — há 14d</span>
+                </li>
+              </ol>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 text-zinc-500">Selecione um lead para ver os detalhes.</div>
+        )}
+      </aside>
+    </>
+  );
+}
+
+// Dropdown simples para ações por linha
+function RowMenu({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="absolute right-0 top-8 z-20 w-48 rounded-xl border bg-white shadow-lg p-1 text-sm">
+      {[
+        "Abrir",
+        "Enviar e-mail",
+        "WhatsApp",
+        "Marcar em andamento",
+        "Arquivar",
+      ].map((item) => (
+        <button
+          key={item}
+          onClick={onClose}
+          className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-50"
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function LeadsRedesign() {
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<LeadStatus | "Todos">("Todos");
+  const [selected, setSelected] = useState<number[]>([]);
+  const [drawerLead, setDrawerLead] = useState<Lead | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [filters, setFilters] = useState({ owner: "Todos", source: "Todos", status: "Todos", period: "Últimos 30 dias" });
+
+  const leads = useMemo(() => {
+    return MOCK_LEADS.filter((l) =>
+      (tab === "Todos" || l.status === tab) &&
+      (filters.owner === "Todos" || l.owner === filters.owner) &&
+      (filters.source === "Todos" || l.source === filters.source) &&
+      (filters.status === "Todos" || l.status === (filters.status as LeadStatus)) &&
+      (l.name.toLowerCase().includes(query.toLowerCase()) || l.email.toLowerCase().includes(query.toLowerCase()))
+    );
+  }, [query, tab, filters]);
+
+  const allOwners = Array.from(new Set(MOCK_LEADS.map((l) => l.owner)));
+  const allSources = Array.from(new Set(MOCK_LEADS.map((l) => l.source)));
+
+  const toggleSelectAll = (checked: boolean) => {
+    setSelected(checked ? leads.map((l) => l.id) : []);
+  };
+
+  const toggleRow = (id: number) => {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-zinc-50">
+      {/* Header global */}
+      <header className="sticky top-0 z-30 backdrop-blur bg-white/80 border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
+            <div className="mt-1 flex items-center gap-3 text-sm text-zinc-600">
+              <span className="px-2 py-0.5 rounded-md bg-zinc-100">2.387 no total</span>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">+12% vs mês anterior</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-xl border hover:bg-zinc-50">
+              <Download className="w-4 h-4" /> Exportar CSV
+            </button>
+            <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white hover:bg-zinc-800">
+              <Plus className="w-4 h-4" /> Novo lead
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de filtros */}
+        <div className="border-t">
+          <div className="max-w-7xl mx-auto px-6 py-3 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+            <div className="lg:col-span-4 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nome ou e-mail (atalho: /)"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-black/10"
+              />
+            </div>
+            <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Select
+                label="Owner"
+                value={filters.owner}
+                onChange={(v) => setFilters((f) => ({ ...f, owner: v }))}
+                options={["Todos", ...allOwners]}
+              />
+              <Select
+                label="Origem"
+                value={filters.source}
+                onChange={(v) => setFilters((f) => ({ ...f, source: v }))}
+                options={["Todos", ...allSources]}
+              />
+              <Select
+                label="Status"
+                value={filters.status}
+                onChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+                options={["Todos", "Novo", "Em andamento", "Arquivado"]}
+              />
+              <Select
+                label="Período"
+                value={filters.period}
+                onChange={(v) => setFilters((f) => ({ ...f, period: v }))}
+                options={["Hoje", "Últimos 7 dias", "Últimos 30 dias", "Este mês"]}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Abas */}
+        <div className="border-t">
+          <div className="max-w-7xl mx-auto px-6">
+            <nav className="flex gap-2 overflow-x-auto py-2">
+              {([
+                { key: "Todos", count: MOCK_LEADS.length },
+                { key: "Novo", count: MOCK_LEADS.filter((l) => l.status === "Novo").length },
+                { key: "Em andamento", count: MOCK_LEADS.filter((l) => l.status === "Em andamento").length },
+                { key: "Arquivado", count: MOCK_LEADS.filter((l) => l.status === "Arquivado").length },
+              ] as { key: LeadStatus | "Todos"; count: number }[]).map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`px-3 py-2 rounded-xl text-sm border ${
+                    tab === t.key ? "bg-black text-white border-black" : "bg-white hover:bg-zinc-50"
+                  }`}
+                >
+                  {t.key} <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-700">{t.count}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Conteúdo */}
+      <main className="max-w-7xl mx-auto px-6 py-6">
+        <div className="relative overflow-hidden rounded-2xl border bg-white">
+          <div className="overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-[148px] bg-white border-b z-10">
+                <tr>
+                  <th className="w-10 p-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selected.length === leads.length && leads.length > 0}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                    />
+                  </th>
+                  <Th>Nome</Th>
+                  <Th>E-mail</Th>
+                  <Th>Telefone</Th>
+                  <Th className="text-center">Status</Th>
+                  <Th>Origem</Th>
+                  <Th>Owner</Th>
+                  <Th>Última atividade</Th>
+                  <th className="w-10 p-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map((lead, idx) => (
+                  <tr
+                    key={lead.id}
+                    className={`border-b hover:bg-zinc-50 ${idx % 2 === 0 ? "bg-white" : "bg-zinc-50/50"}`}
+                  >
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(lead.id)}
+                        onChange={() => toggleRow(lead.id)}
+                      />
+                    </td>
+                    <td className="p-3">
+                      <button onClick={() => setDrawerLead(lead)} className="flex items-center gap-3">
+                        <Avatar name={lead.name} />
+                        <div className="text-left">
+                          <div className="font-medium">{lead.name}</div>
+                          <div className="text-xs text-zinc-500">#{lead.id}</div>
+                        </div>
+                      </button>
+                    </td>
+                    <td className="p-3">
+                      <a className="hover:underline" href={`mailto:${lead.email}`}>{lead.email}</a>
+                    </td>
+                    <td className="p-3">
+                      <a className="hover:underline" href={`tel:${lead.phone}`}>{lead.phone}</a>
+                    </td>
+                    <td className="p-3 text-center">
+                      <StatusChip status={lead.status} />
+                    </td>
+                    <td className="p-3">{lead.source}</td>
+                    <td className="p-3">{lead.owner}</td>
+                    <td className="p-3 text-zinc-600">{lead.lastActivity}</td>
+                    <td className="p-3 relative">
+                      <button
+                        className="p-2 rounded-lg hover:bg-zinc-100"
+                        onClick={() => setMenuOpenId((v) => (v === lead.id ? null : lead.id))}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {menuOpenId === lead.id && <RowMenu onClose={() => setMenuOpenId(null)} />}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      {/* Barra de ações em massa */}
+      <div
+        className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-40 transition-all ${
+          selected.length ? "opacity-100 translate-y-0" : "opacity-0 pointer-events-none translate-y-6"
+        }`}
+      >
+        <div className="flex items-center gap-3 bg-white border shadow-xl rounded-2xl px-4 py-2">
+          <span className="text-sm text-zinc-600">{selected.length} selecionado(s)</span>
+          <div className="w-px h-6 bg-zinc-200" />
+          <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Atribuir owner</button>
+          <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Mudar status</button>
+          <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Enviar oferta em massa</button>
+          <button className="px-3 py-2 rounded-xl border hover:bg-zinc-50">Arquivar</button>
+        </div>
+      </div>
+
+      {/* Drawer */}
+      <LeadDrawer lead={drawerLead} onClose={() => setDrawerLead(null)} />
+    </div>
+  );
+}
+
+// ---- Componentes auxiliares ----
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <th className={`text-left font-semibold text-zinc-700 p-3 whitespace-nowrap ${className}`}>{children}</th>;
+}
+
+function Avatar({ name }: { name: string }) {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return (
+    <div className="w-8 h-8 rounded-full bg-zinc-900 text-white grid place-items-center text-xs font-semibold">
+      {initials}
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <label className="block text-sm">
+      <span className="text-zinc-600 mb-1 block">{label}</span>
+      <div className="relative">
+        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full appearance-none pl-9 pr-8 py-2.5 rounded-xl border bg-white focus:outline-none focus:ring-2 focus:ring-black/10"
+        >
+          {options.map((op) => (
+            <option key={op} value={op}>
+              {op}
+            </option>
+          ))}
+        </select>
+        <svg
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+          width="16"
+          height="16"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </label>
+  );
+}
