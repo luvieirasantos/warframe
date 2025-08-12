@@ -25,6 +25,9 @@ import {
   Check,
 } from "lucide-react";
 
+// Logo (inline data URI)
+const LOGO = "./logo (1).png";
+
 /***********************************
  * Growth • V1 — Plataforma de Leads
  * Navegação: Dashboard, Leads, Landing Pages, Campanhas (Mensagens), Templates, Integrações, Estúdio IA (futuro)
@@ -216,7 +219,14 @@ function PageLeads() {
   const [selected, setSelected] = useState<number[]>([]);
   const [drawerLead, setDrawerLead] = useState<Lead | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<LeadStatus>('Em andamento');
+  const updateStatus = (ids: number[], status: LeadStatus) => {
+    if (!ids.length) return;
+    setData(prev => prev.map(l => ids.includes(l.id) ? { ...l, status } : l));
+    setSelected([]);
+  };
   const [filters, setFilters] = useState({ owner: "Todos", source: "Todos", status: "Todos", period: "Últimos 30 dias" });
+  const [data, setData] = useState<Lead[]>(MOCK_LEADS);
 
   // stickies dinâmicos
   const pageHeaderRef = useRef<HTMLDivElement>(null);
@@ -238,18 +248,17 @@ function PageLeads() {
     return () => ro.disconnect();
   }, []);
 
-  const leads = useMemo(() => {
-    return MOCK_LEADS.filter((l) =>
+  const leads = useMemo(() => { return data.filter((l) =>
       (tab === "Todos" || l.status === tab) &&
       (filters.owner === "Todos" || l.owner === filters.owner) &&
       (filters.source === "Todos" || l.source === filters.source) &&
       (filters.status === "Todos" || l.status === (filters.status as LeadStatus)) &&
       (l.name.toLowerCase().includes(query.toLowerCase()) || l.email.toLowerCase().includes(query.toLowerCase()))
     );
-  }, [query, tab, filters]);
+  }, [data, query, tab, filters]);
 
-  const allOwners = Array.from(new Set(MOCK_LEADS.map((l) => l.owner)));
-  const allSources = Array.from(new Set(MOCK_LEADS.map((l) => l.source)));
+  const allOwners = Array.from(new Set(data.map((l) => l.owner)));
+  const allSources = Array.from(new Set(data.map((l) => l.source)));
 
   const toggleSelectAll = (checked: boolean) => setSelected(checked ? leads.map((l) => l.id) : []);
   const toggleRow = (id: number) => setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -298,10 +307,10 @@ function PageLeads() {
         <div className="max-w-7xl mx-auto px-6">
           <nav className="flex gap-8 overflow-x-auto py-2">
             {([
-              { key: "Todos", count: MOCK_LEADS.length },
-              { key: "Novo", count: MOCK_LEADS.filter((l) => l.status === "Novo").length },
-              { key: "Em andamento", count: MOCK_LEADS.filter((l) => l.status === "Em andamento").length },
-              { key: "Arquivado", count: MOCK_LEADS.filter((l) => l.status === "Arquivado").length },
+              { key: "Todos", count: data.length },
+              { key: "Novo", count: data.filter((l) => l.status === "Novo").length },
+              { key: "Em andamento", count: data.filter((l) => l.status === "Em andamento").length },
+              { key: "Arquivado", count: data.filter((l) => l.status === "Arquivado").length }
             ] as { key: LeadStatus | "Todos"; count: number }[]).map((t) => (
               <button key={t.key} onClick={() => setTab(t.key)} className={`px-3 py-1.5 rounded-full text-sm border whitespace-nowrap stroke-15 ${tab === t.key ? "bg-brand-50 text-brand-600" : "bg-white hover:bg-zinc-50"}`}>
                 {t.key} <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border">{t.count}</span>
@@ -354,7 +363,16 @@ function PageLeads() {
                       <button className="p-2 rounded-lg hover:bg-zinc-50" onClick={() => setMenuOpenId((v) => (v === lead.id ? null : lead.id))}>
                         <MoreVertical className="w-4 h-4" />
                       </button>
-                      {menuOpenId === lead.id && <RowMenu onClose={() => setMenuOpenId(null)} />}
+                      {menuOpenId === lead.id && (
+                        <RowMenu
+                          onClose={() => setMenuOpenId(null)}
+                          currentStatus={lead.status}
+                          onChangeStatus={(s) => {
+                            updateStatus([lead.id], s);
+                            setMenuOpenId(null);
+                          }}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -603,7 +621,7 @@ export default function GrowthV1App() {
         <aside className="border-r bg-white">
           <div className="sticky top-0 h-screen overflow-y-auto">
             <div className="flex items-center gap-3 px-4 py-4 border-b">
-              <div className="w-8 h-8 rounded-full bg-brand-500" />
+              <img src={LOGO} alt="CaririCode" className="w-8 h-8 rounded-full object-contain brand-glow" />
               <div className="font-semibold">CaririCode • Growth</div>
             </div>
             <nav className="p-3 text-sm">
@@ -629,7 +647,7 @@ export default function GrowthV1App() {
           <div className="sticky top-0 z-50 bg-white/70 backdrop-blur border-b">
             <div className="h-16 max-w-7xl mx-auto px-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand-500" title="Logo" />
+                <img src={LOGO} alt="CaririCode" className="w-8 h-8 rounded-full object-contain brand-glow" />
                 <span className="font-semibold">Dashboard Growth</span>
               </div>
               <div className="flex items-center gap-2">
@@ -712,12 +730,25 @@ function LeadDrawer({ lead, onClose }: { lead: Lead | null; onClose: () => void 
   );
 }
 
-function RowMenu({ onClose }: { onClose: () => void }) {
+function RowMenu({ onClose, onChangeStatus, currentStatus }: { onClose: () => void; onChangeStatus: (s: LeadStatus) => void; currentStatus: LeadStatus }) {
   return (
-    <div className="absolute right-0 top-8 z-20 w-48 rounded-xl border bg-white shadow-soft p-1 text-sm">
-      {["Abrir","Enviar e-mail","WhatsApp","Marcar em andamento","Arquivar"].map((item) => (
+    <div className="absolute right-0 top-8 z-20 w-56 rounded-xl border bg-white shadow-soft p-1 text-sm">
+      {["Abrir","Enviar e-mail","WhatsApp"].map((item) => (
         <button key={item} onClick={onClose} className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-50">{item}</button>
+      ))}
+      <div className="my-1 h-px bg-zinc-200" />
+      <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-zinc-500">Status</div>
+      {(["Novo","Em andamento","Arquivado"] as LeadStatus[]).map((s) => (
+        <button
+          key={s}
+          onClick={() => onChangeStatus(s)}
+          className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg hover:bg-zinc-50"
+        >
+          <span>{s}</span>
+          {currentStatus === s && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+        </button>
       ))}
     </div>
   );
 }
+
